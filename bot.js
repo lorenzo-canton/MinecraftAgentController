@@ -13,6 +13,7 @@ class MinecraftBot {
         this.bot = mineflayer.createBot(this.config);
         
         this.bot.loadPlugin(pathfinder);
+        this.bot.loadPlugin(require('mineflayer-collectblock').plugin)
         this.setupEventHandlers();
         this.commands = {
             '!gotoplayer': this.handleGotoPlayer.bind(this),
@@ -28,8 +29,50 @@ class MinecraftBot {
             '!unequip': this.handleUnequipItem.bind(this),
             '!use': this.handleUseItem.bind(this),
             '!craft': this.handleCraftItem.bind(this),
+            '!collect': this.handleCollect.bind(this),
             '!help': this.handleHelp.bind(this)
         };
+    }
+
+    async handleCollect(args) {
+        if (args.length !== 1) return;
+        const blockName = args[0];
+        
+        const blockType = this.bot.registry.blocksByName[blockName];
+        if (!blockType) {
+            this.sendMessage(
+                'Неизвестный блок',
+                'Blocco sconosciuto'
+            );
+            return;
+        }
+    
+        const block = this.bot.findBlock({
+            matching: blockType.id,
+            maxDistance: 64
+        });
+    
+        if (!block) {
+            this.sendMessage(
+                'Блок не найден поблизости',
+                'Blocco non trovato nelle vicinanze'
+            );
+            return;
+        }
+    
+        this.sendMessage(
+            `Собираю ${blockType.name}`,
+            `Raccolgo ${blockType.name}`
+        );
+    
+        try {
+            await this.bot.collectBlock.collect(block);
+        } catch (err) {
+            this.sendMessage(
+                `Ошибка: ${err.message}`,
+                `Errore: ${err.message}`
+            );
+        }
     }
 
     findPlayer(username) {
@@ -91,8 +134,7 @@ class MinecraftBot {
         }
         const output = items.map(this.itemToString).join(', ');
         this.sendMessage(
-            output || 'Инвентарь пуст',
-            output || 'Inventario vuoto'
+            output || 'Инвентарь пуст Inventario vuoto'
         );
     }
 
@@ -316,6 +358,7 @@ class MinecraftBot {
 
     handleHelp() {
         const commands = [
+            ['!collect <блок> - собрать ближайший блок', '!collect <blocco> - raccogli il blocco più vicino'],
             // Comandi di movimento
             ['!gotoplayer <имя> <расстояние> - идти к игроку', '!gotoplayer <nome> <distanza> - vai dal giocatore'],
             ['!gotonearestplayer <расстояние> - идти к ближайшему игроку', '!gotonearestplayer <distanza> - vai dal giocatore più vicino'],
@@ -331,7 +374,7 @@ class MinecraftBot {
             ['!equip <слот> <предмет> - экипировать предмет', '!equip <slot> <oggetto> - equipaggia oggetto'],
             ['!unequip <слот> - снять предмет', '!unequip <slot> - rimuovi oggetto'],
             ['!use - использовать предмет в руке', '!use - usa oggetto in mano'],
-            ['!craft <предмет> <количество> - создать предмет', '!craft <oggetto> <quantità> - crafta oggetto']
+            ['!craft <предмет> <количество> - создать предмет', '!craft <oggetto> <quantità> - crafta oggetto']          
         ];
     
         this.bot.chat('Доступные команды:');

@@ -11,6 +11,12 @@ class BotController {
     }
 
     registerRoutes(app) {
+        app.post('/bot/collect', (req, res) => {
+            const { blockName } = req.body;
+            this.bot.commands['!collect']([blockName]);
+            res.json({ status: 'ok' });
+        });
+        
         app.post('/bot/goto-player', (req, res) => {
             const { playerName, distance } = req.body;
             this.bot.commands['!gotoplayer']([playerName, distance]);
