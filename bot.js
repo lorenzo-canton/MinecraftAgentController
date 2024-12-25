@@ -316,15 +316,24 @@ class MinecraftBot {
 
     handleHelp() {
         const commands = [
+            // Comandi di movimento
             ['!gotoplayer <имя> <расстояние> - идти к игроку', '!gotoplayer <nome> <distanza> - vai dal giocatore'],
             ['!gotonearestplayer <расстояние> - идти к ближайшему игроку', '!gotonearestplayer <distanza> - vai dal giocatore più vicino'],
             ['!gotocoord <x> <y> <z> - идти к координатам', '!gotocoord <x> <y> <z> - vai alle coordinate'],
             ['!follow <имя> <расстояние> - следовать за игроком', '!follow <nome> <distanza> - segui il giocatore'],
             ['!stop - остановиться', '!stop - fermati'],
             ['!lookat <имя> - посмотреть на игрока', '!lookat <nome> - guarda il giocatore'],
-            ['!scan [радиус] - сканировать блоки (макс. радиус 10)', '!scan [raggio] - scansiona i blocchi (raggio max 10)']
+            ['!scan [радиус] - сканировать блоки (макс. радиус 10)', '!scan [raggio] - scansiona i blocchi (raggio max 10)'],
+            
+            // Comandi inventario
+            ['!list - показать инвентарь', '!list - mostra inventario'],
+            ['!toss <предмет> [количество] - выбросить предметы', '!toss <oggetto> [quantità] - getta oggetti'],
+            ['!equip <слот> <предмет> - экипировать предмет', '!equip <slot> <oggetto> - equipaggia oggetto'],
+            ['!unequip <слот> - снять предмет', '!unequip <slot> - rimuovi oggetto'],
+            ['!use - использовать предмет в руке', '!use - usa oggetto in mano'],
+            ['!craft <предмет> <количество> - создать предмет', '!craft <oggetto> <quantità> - crafta oggetto']
         ];
-
+    
         this.bot.chat('Доступные команды:');
         commands.forEach(([ru]) => this.bot.chat(ru));
         this.bot.chat('--------------------');
