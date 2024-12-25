@@ -215,6 +215,9 @@ class MinecraftBot {
     }
 }
 
+module.exports = { MinecraftBot };
+
+/*
 // Esempio di utilizzo:
 const config = {
     host: 'localhost',    // Il tuo server
@@ -224,3 +227,4 @@ const config = {
 
 // Avvio del bot con configurazione personalizzata
 const minecraftBot = new MinecraftBot(config);
+*/
