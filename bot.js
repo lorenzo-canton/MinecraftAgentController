@@ -22,6 +22,12 @@ class MinecraftBot {
             '!stop': this.handleStop.bind(this),
             '!lookat': this.handleLookAt.bind(this),
             '!scan': this.handleScan.bind(this),
+            '!list': this.handleListInventory.bind(this),
+            '!toss': this.handleTossItem.bind(this),
+            '!equip': this.handleEquipItem.bind(this),
+            '!unequip': this.handleUnequipItem.bind(this),
+            '!use': this.handleUseItem.bind(this),
+            '!craft': this.handleCraftItem.bind(this),
             '!help': this.handleHelp.bind(this)
         };
     }
@@ -61,6 +67,159 @@ class MinecraftBot {
             }
         }
         return blocks;
+    }
+
+    itemToString(item) {
+        if (item) {
+            return `${item.name} x ${item.count}`;
+        }
+        return '(nothing)';
+    }
+
+    findItemByName(name) {
+        const items = this.bot.inventory.items();
+        if (this.bot.registry.isNewerOrEqualTo('1.9') && this.bot.inventory.slots[45]) {
+            items.push(this.bot.inventory.slots[45]);
+        }
+        return items.filter(item => item.name === name)[0];
+    }
+
+    handleListInventory() {
+        const items = this.bot.inventory.items();
+        if (this.bot.registry.isNewerOrEqualTo('1.9') && this.bot.inventory.slots[45]) {
+            items.push(this.bot.inventory.slots[45]);
+        }
+        const output = items.map(this.itemToString).join(', ');
+        this.sendMessage(
+            output || 'Инвентарь пуст',
+            output || 'Inventario vuoto'
+        );
+    }
+
+    async handleTossItem(args) {
+        const [name, amount] = args;
+        const parsedAmount = parseInt(amount, 10);
+        const item = this.findItemByName(name);
+
+        if (!item) {
+            this.sendMessage(
+                `У меня нет ${name}`,
+                `Non ho ${name}`
+            );
+            return;
+        }
+
+        try {
+            if (parsedAmount) {
+                await this.bot.toss(item.type, null, parsedAmount);
+                this.sendMessage(
+                    `Выброшено ${parsedAmount} x ${name}`,
+                    `Gettato ${parsedAmount} x ${name}`
+                );
+            } else {
+                await this.bot.tossStack(item);
+                this.sendMessage(
+                    `Выброшен ${name}`,
+                    `Gettato ${name}`
+                );
+            }
+        } catch (err) {
+            this.sendMessage(
+                `Не могу выбросить: ${err.message}`,
+                `Impossibile gettare: ${err.message}`
+            );
+        }
+    }
+
+    async handleEquipItem(args) {
+        const [destination, name] = args;
+        const item = this.findItemByName(name);
+
+        if (!item) {
+            this.sendMessage(
+                `У меня нет ${name}`,
+                `Non ho ${name}`
+            );
+            return;
+        }
+
+        try {
+            await this.bot.equip(item, destination);
+            this.sendMessage(
+                `Экипирован ${name}`,
+                `Equipaggiato ${name}`
+            );
+        } catch (err) {
+            this.sendMessage(
+                `Не могу экипировать ${name}: ${err.message}`,
+                `Impossibile equipaggiare ${name}: ${err.message}`
+            );
+        }
+    }
+
+    async handleUnequipItem(args) {
+        const [destination] = args;
+        try {
+            await this.bot.unequip(destination);
+            this.sendMessage(
+                'Предмет снят',
+                'Oggetto rimosso'
+            );
+        } catch (err) {
+            this.sendMessage(
+                `Не могу снять: ${err.message}`,
+                `Impossibile rimuovere: ${err.message}`
+            );
+        }
+    }
+
+    handleUseItem() {
+        this.sendMessage(
+            'Использую предмет',
+            'Uso oggetto'
+        );
+        this.bot.activateItem();
+    }
+
+    async handleCraftItem(args) {
+        const [name, amount] = args;
+        const parsedAmount = parseInt(amount, 10);
+        const item = this.bot.registry.itemsByName[name];
+        const craftingTableID = this.bot.registry.blocksByName.crafting_table.id;
+
+        const craftingTable = this.bot.findBlock({
+            matching: craftingTableID
+        });
+
+        if (!item) {
+            this.sendMessage(
+                `Неизвестный предмет: ${name}`,
+                `Oggetto sconosciuto: ${name}`
+            );
+            return;
+        }
+
+        const recipe = this.bot.recipesFor(item.id, null, 1, craftingTable)[0];
+        if (!recipe) {
+            this.sendMessage(
+                `Я не могу создать ${name}`,
+                `Non posso craftare ${name}`
+            );
+            return;
+        }
+
+        try {
+            await this.bot.craft(recipe, parsedAmount, craftingTable);
+            this.sendMessage(
+                `Создано ${name} ${parsedAmount} раз`,
+                `Craftato ${name} ${parsedAmount} volte`
+            );
+        } catch (err) {
+            this.sendMessage(
+                `Ошибка при создании ${name}`,
+                `Errore nel craftare ${name}`
+            );
+        }
     }
 
     handleGotoPlayer(args) {

@@ -52,6 +52,43 @@ class BotController {
             res.json(blocks);
         });
 
+        app.get('/bot/inventory', (req, res) => {
+            const items = this.bot.bot.inventory.items().map(item => ({
+                name: item.name,
+                count: item.count
+            }));
+            res.json(items);
+        });
+    
+        app.post('/bot/toss', (req, res) => {
+            const { itemName, amount } = req.body;
+            this.bot.commands['!toss']([itemName, amount]);
+            res.json({ status: 'ok' });
+        });
+    
+        app.post('/bot/equip', (req, res) => {
+            const { destination, itemName } = req.body;
+            this.bot.commands['!equip']([destination, itemName]);
+            res.json({ status: 'ok' });
+        });
+    
+        app.post('/bot/unequip', (req, res) => {
+            const { destination } = req.body;
+            this.bot.commands['!unequip']([destination]);
+            res.json({ status: 'ok' });
+        });
+    
+        app.post('/bot/use', (req, res) => {
+            this.bot.commands['!use']();
+            res.json({ status: 'ok' });
+        });
+    
+        app.post('/bot/craft', (req, res) => {
+            const { itemName, amount } = req.body;
+            this.bot.commands['!craft']([itemName, amount]);
+            res.json({ status: 'ok' });
+        });
+
         app.get('/bot/help', (req, res) => {
             const commands = Object.keys(this.bot.commands).map(cmd => ({
                 command: cmd,
