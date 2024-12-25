@@ -4,49 +4,61 @@
 
 ## Minecraft Bot Controller (IT)
 
-Bot Minecraft controllabile tramite API REST e comandi in chat.
-
 ### Installazione
 ```bash
 npm install
 ```
 
 ### Configurazione
-Variabili d'ambiente:
-- `MC_HOST`: Server Minecraft (default: localhost)
-- `MC_PORT`: Porta server (default: 25565)
-- `MC_USERNAME`: Nome del bot (default: BotTest)
-- `PORT`: Porta API (default: 3000)
+Configura il bot nel file `.env`:
+```
+MC_HOST=localhost
+MC_PORT=25565
+MC_USERNAME=BotTest
+PORT=3000
+```
 
 ### Avvio
 ```bash
-node server.js
+node main.js
 ```
 
-### Comandi Chat
-- `!gotoplayer <nome> <distanza>`: Vai dal giocatore
-- `!gotonearestplayer <distanza>`: Vai dal giocatore più vicino
-- `!gotocoord <x> <y> <z>`: Vai alle coordinate
-- `!follow <nome> <distanza>`: Segui il giocatore
-- `!stop`: Fermati
-- `!lookat <nome>`: Guarda il giocatore
-- `!scan [raggio]`: Scansiona i blocchi (raggio max 10)
+### Comandi del Bot
+#### Movimento
+- `!gotoplayer <nome> <distanza>` - Va verso un giocatore
+- `!gotonearestplayer <distanza>` - Va verso il giocatore più vicino
+- `!gotocoord <x> <y> <z>` - Va alle coordinate specificate
+- `!follow <nome> <distanza>` - Segue un giocatore
+- `!stop` - Si ferma
+- `!lookat <nome>` - Guarda un giocatore
+- `!scan [raggio]` - Scansiona i blocchi nel raggio (max 10)
 
-### API Endpoints
-- `POST /bot/goto-player`: { playerName, distance }
-- `POST /bot/goto-nearest`: { distance }
-- `POST /bot/goto-coord`: { x, y, z }
-- `POST /bot/follow`: { playerName, distance }
-- `POST /bot/stop`
-- `POST /bot/look-at`: { playerName }
-- `GET /bot/scan?radius=10`
-- `GET /bot/help`
+#### Inventario
+- `!list` - Mostra l'inventario
+- `!toss <oggetto> [quantità]` - Getta oggetti
+- `!equip <slot> <oggetto>` - Equipaggia un oggetto
+- `!unequip <slot>` - Rimuove un oggetto equipaggiato
+- `!use` - Usa l'oggetto in mano
+- `!craft <oggetto> <quantità>` - Crafta un oggetto
+- `!collect <blocco>` - Raccoglie il blocco più vicino
 
----
+### API REST
+- GET `/bot/scan?radius=10` - Scansiona i blocchi
+- GET `/bot/inventory` - Mostra l'inventario
+- POST `/bot/goto-player` - Va verso un giocatore
+- POST `/bot/goto-nearest` - Va verso il giocatore più vicino
+- POST `/bot/goto-coord` - Va alle coordinate
+- POST `/bot/follow` - Segue un giocatore
+- POST `/bot/stop` - Si ferma
+- POST `/bot/look-at` - Guarda un giocatore
+- POST `/bot/toss` - Getta oggetti
+- POST `/bot/equip` - Equipaggia un oggetto
+- POST `/bot/unequip` - Rimuove un oggetto
+- POST `/bot/use` - Usa l'oggetto in mano
+- POST `/bot/craft` - Crafta un oggetto
+- POST `/bot/collect` - Raccoglie un blocco
 
 ## Minecraft Bot Controller (RU)
-
-Бот Minecraft, управляемый через REST API и команды чата.
 
 ### Установка
 ```bash
@@ -54,32 +66,50 @@ npm install
 ```
 
 ### Конфигурация
-Переменные окружения:
-- `MC_HOST`: Сервер Minecraft (по умолчанию: localhost)
-- `MC_PORT`: Порт сервера (по умолчанию: 25565)
-- `MC_USERNAME`: Имя бота (по умолчанию: BotTest)
-- `PORT`: Порт API (по умолчанию: 3000)
+Настройте бота в файле `.env`:
+```
+MC_HOST=localhost
+MC_PORT=25565
+MC_USERNAME=BotTest
+PORT=3000
+```
 
 ### Запуск
 ```bash
-node server.js
+node main.js
 ```
 
-### Команды чата
-- `!gotoplayer <имя> <расстояние>`: Идти к игроку
-- `!gotonearestplayer <расстояние>`: Идти к ближайшему игроку
-- `!gotocoord <x> <y> <z>`: Идти к координатам
-- `!follow <имя> <расстояние>`: Следовать за игроком
-- `!stop`: Остановиться
-- `!lookat <имя>`: Посмотреть на игрока
-- `!scan [радиус]`: Сканировать блоки (макс. радиус 10)
+### Команды бота
+#### Перемещение
+- `!gotoplayer <имя> <расстояние>` - Идти к игроку
+- `!gotonearestplayer <расстояние>` - Идти к ближайшему игроку
+- `!gotocoord <x> <y> <z>` - Идти к координатам
+- `!follow <имя> <расстояние>` - Следовать за игроком
+- `!stop` - Остановиться
+- `!lookat <имя>` - Посмотреть на игрока
+- `!scan [радиус]` - Сканировать блоки (макс. радиус 10)
 
-### API Endpoints
-- `POST /bot/goto-player`: { playerName, distance }
-- `POST /bot/goto-nearest`: { distance }
-- `POST /bot/goto-coord`: { x, y, z }
-- `POST /bot/follow`: { playerName, distance }
-- `POST /bot/stop`
-- `POST /bot/look-at`: { playerName }
-- `GET /bot/scan?radius=10`
-- `GET /bot/help`
+#### Инвентарь
+- `!list` - Показать инвентарь
+- `!toss <предмет> [количество]` - Выбросить предметы
+- `!equip <слот> <предмет>` - Экипировать предмет
+- `!unequip <слот>` - Снять предмет
+- `!use` - Использовать предмет в руке
+- `!craft <предмет> <количество>` - Создать предмет
+- `!collect <блок>` - Собрать ближайший блок
+
+### API REST
+- GET `/bot/scan?radius=10` - Сканировать блоки
+- GET `/bot/inventory` - Показать инвентарь
+- POST `/bot/goto-player` - Идти к игроку
+- POST `/bot/goto-nearest` - Идти к ближайшему игроку
+- POST `/bot/goto-coord` - Идти к координатам
+- POST `/bot/follow` - Следовать за игроком
+- POST `/bot/stop` - Остановиться
+- POST `/bot/look-at` - Посмотреть на игрока
+- POST `/bot/toss` - Выбросить предметы
+- POST `/bot/equip` - Экипировать предмет
+- POST `/bot/unequip` - Снять предмет
+- POST `/bot/use` - Использовать предмет
+- POST `/bot/craft` - Создать предмет
+- POST `/bot/collect` - Собрать блок
