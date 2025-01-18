@@ -4,7 +4,7 @@ const config = {
     host: 'localhost',
     port: 25565,
     username: 'AIBot',
-    aiModel: 'hermes3:8b-llama3.1-q4_K_M',  // o il modello che preferisci
+    aiModel: 'command-r7b:latest',  // o il modello che preferisci
     version: '1.20.4'   // versione di Minecraft
 };
 

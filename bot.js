@@ -45,7 +45,7 @@ async function collectBlock(args) {
 
     const block = bot.findBlock({
         matching: blockType.id,
-        maxDistance: 64
+        maxDistance: 10
     });
 
     if (!block) return { success: false, message: 'Block not found nearby' };
@@ -68,7 +68,7 @@ function listInventory(args) {
     return { success: true, inventory: itemList || 'Empty inventory' };
 }
 
-// Tool definitions for the AI
+// Tool definitions for the AI (removed scan and inventory as they'll be part of system message)
 const toolDefinitions = [
     {
         type: 'function',
@@ -101,36 +101,17 @@ const toolDefinitions = [
     {
         type: 'function',
         function: {
-            name: 'scanArea',
-            description: 'Scan blocks in a 10 block radius around the bot',
-            parameters: {
-                type: 'object',
-                properties: {}
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
             name: 'collectBlock',
             description: 'Collect a specific type of block nearby',
             parameters: {
                 type: 'object',
                 required: ['blockName'],
                 properties: {
-                    blockName: { type: 'string', description: 'Name of the block to collect' }
+                    blockName: { 
+                        type: 'string', 
+                        description: 'Exact name of the block to collect (e.g., oak_log, not wood)' 
+                    }
                 }
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'listInventory',
-            description: 'List all items in the bot inventory',
-            parameters: {
-                type: 'object',
-                properties: {}
             }
         }
     }
@@ -152,6 +133,17 @@ class MinecraftAIBot {
         
         this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
         
+        // Initialize conversation history
+        this.messages = [
+            {
+                role: 'system',
+                content: `You are a Minecraft bot assistant. You can help players by moving to them, following them, and collecting blocks. 
+                         You should always be aware of your surroundings and inventory to make informed decisions.
+                         When players ask about specific blocks, check if they are visible in your surroundings first.
+                         Be helpful and friendly in your responses.`
+            }
+        ];
+        
         this.availableFunctions = {
             goToPlayer: (args) => goToPlayer({ ...args, bot: this.bot }),
             followPlayer: (args) => followPlayer({ ...args, bot: this.bot }),
@@ -164,12 +156,35 @@ class MinecraftAIBot {
     }
 
     async processAICommand(message) {
-        const messages = [{ role: 'user', content: message }];
+        // Get current surroundings and inventory
+        const surroundings = await this.availableFunctions.scanArea({});
+        const inventory = await this.availableFunctions.listInventory({});
+        
+        // Create system message with current state
+        const systemMessage = {
+            role: 'system',
+            content: `Current surroundings: ${JSON.stringify(surroundings.blocks)}
+Current inventory: ${inventory.inventory}
+                     
+You are a Minecraft bot assistant. You can help players by moving to them, following them, and collecting blocks. 
+You should always be aware of your surroundings and inventory to make informed decisions.
+When players ask about specific blocks, check if they are visible in your surroundings first.
+Be helpful and friendly in your responses.`};
+
+        console.log('System message:\n', systemMessage.content)
+        console.log('User message:\n', message)
+
+        // Update messages with current system state and new user message
+        this.messages = [
+            systemMessage,
+            ...this.messages.slice(1),
+            { role: 'user', content: message }
+        ];
         
         try {
             const response = await this.ollama.chat({
                 model: this.config.aiModel,
-                messages: messages,
+                messages: this.messages,
                 tools: toolDefinitions
             });
 
@@ -183,8 +198,8 @@ class MinecraftAIBot {
                         const output = await Promise.resolve(functionToCall(tool.function.arguments));
                         console.log('Function output:', output);
                         
-                        messages.push(response.message);
-                        messages.push({
+                        this.messages.push(response.message);
+                        this.messages.push({
                             role: 'tool',
                             content: JSON.stringify(output)
                         });
@@ -193,12 +208,17 @@ class MinecraftAIBot {
 
                 const finalResponse = await this.ollama.chat({
                     model: this.config.aiModel,
-                    messages: messages
+                    messages: this.messages
                 });
 
+                // Add assistant's response to message history
+                this.messages.push(finalResponse.message);
                 return finalResponse.message.content;
             }
 
+            // Add assistant's response to message history
+            console.log(`Assistant:\n${response.message.content}`);
+            this.messages.push(response.message);
             return response.message.content;
         } catch (error) {
             console.error('AI processing error:', error);
@@ -209,7 +229,7 @@ class MinecraftAIBot {
     setupEvents() {
         this.bot.on('spawn', () => {
             console.log('Bot spawned');
-            this.bot.chat('AI Bot ready! Available commands: go to player, follow player, scan area, collect blocks, list inventory');
+            this.bot.chat('AI Bot ready! Available commands: go to player, follow player, collect blocks');
         });
 
         this.bot.on('chat', async (username, message) => {
