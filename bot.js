@@ -1,5 +1,6 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, goals } = require('mineflayer-pathfinder');
+const collectBlockPlugin = require('mineflayer-collectblock').plugin
 const { Ollama } = require('ollama');
 
 // Minecraft bot functions that can be called by the AI
@@ -38,7 +39,7 @@ function scanArea(args) {
     return { success: true, blocks };
 }
 
-async function collectBlock(args) {
+function collectBlock(args) {
     const { blockName, bot } = args;
     const blockType = bot.registry.blocksByName[blockName];
     if (!blockType) return { success: false, message: 'Block type not found' };
@@ -51,7 +52,7 @@ async function collectBlock(args) {
     if (!block) return { success: false, message: 'Block not found nearby' };
 
     try {
-        await bot.collectBlock.collect(block);
+        bot.collectBlock.collect(block);
         return { success: true, message: `Collected ${blockName}` };
     } catch (err) {
         return { success: false, message: `Failed to collect: ${err.message}` };
@@ -129,7 +130,7 @@ class MinecraftAIBot {
         
         this.bot = mineflayer.createBot(this.config);
         this.bot.loadPlugin(pathfinder);
-        this.bot.loadPlugin(require('mineflayer-collectblock').plugin);
+        this.bot.loadPlugin(collectBlockPlugin);
         
         this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
         
@@ -195,7 +196,7 @@ Be helpful and friendly in your responses.`};
                         console.log('AI calling function:', tool.function.name);
                         console.log('Arguments:', tool.function.arguments);
                         
-                        const output = await Promise.resolve(functionToCall(tool.function.arguments));
+                        const output = functionToCall(tool.function.arguments);
                         console.log('Function output:', output);
                         
                         this.messages.push(response.message);
