@@ -1,11 +1,11 @@
-const { MinecraftAIBot } = require('./bot');
+const { MinecraftAIBot } = require('./bot/MinecraftAIBot');
 
 const config = {
     host: 'localhost',
     port: 25565,
     username: 'AIBot',
-    aiModel: 'hermes3:8b-llama3.1-q4_K_M',  // o il modello che preferisci
-    version: '1.20.4'   // versione di Minecraft
+    aiModel: 'hermes3:8b-llama3.1-q4_K_M',
+    version: '1.20.4'
 };
 
 try {

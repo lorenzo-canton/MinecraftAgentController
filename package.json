@@ -2,9 +2,11 @@
   "name": "minecraftagent",
   "version": "1.0.0",
   "description": "",
-  "main": "bot.js",
+  "main": "src/main.js",
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/main.js",
+    "dev": "nodemon src/main.js"
   },
   "keywords": [],
   "author": "",
