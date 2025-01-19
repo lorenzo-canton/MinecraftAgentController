@@ -1,21 +1,51 @@
 async function collectBlock(args) {
-    const { blockName, bot } = args;
+    const { blockName, amount, bot } = args;
     const blockType = bot.registry.blocksByName[blockName];
-    if (!blockType) return { success: false, message: 'Block type not found' };
-
-    const block = bot.findBlock({
-        matching: blockType.id,
-        maxDistance: 10
-    });
-
-    if (!block) return { success: false, message: 'Block not found nearby' };
-
-    try {
-        await bot.collectBlock.collect(block);
-        return { success: true, message: `Collected ${blockName}` };
-    } catch (err) {
-        return { success: false, message: `Failed to collect: ${err.message}` };
+    
+    if (!blockType) {
+        return { success: false, message: 'Block type not found' };
     }
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+        return { success: false, message: 'Amount must be a positive integer' };
+    }
+
+    let collected = 0;
+    const failures = [];
+
+    for (let i = 0; i < amount; i++) {
+        const block = bot.findBlock({
+            matching: blockType.id,
+            maxDistance: 10
+        });
+
+        if (!block) {
+            return {
+                success: false,
+                message: `Only collected ${collected} ${blockName} blocks. No more blocks found nearby.`
+            };
+        }
+
+        try {
+            await bot.collectBlock.collect(block);
+            collected++;
+        } catch (err) {
+            failures.push(err.message);
+            
+            // If we've failed too many times, stop trying
+            if (failures.length >= 3) {
+                return {
+                    success: false,
+                    message: `Collection stopped after ${collected} blocks. Too many failures: ${failures.join(', ')}`
+                };
+            }
+        }
+    }
+
+    return {
+        success: true,
+        message: `Successfully collected ${collected} ${blockName} blocks`
+    };
 }
 
 function listInventory(args) {

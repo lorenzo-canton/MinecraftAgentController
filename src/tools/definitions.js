@@ -31,14 +31,18 @@ const toolDefinitions = [
         type: 'function',
         function: {
             name: 'collectBlock',
-            description: 'Collect a specific type of block nearby',
+            description: 'Collect a specific number of blocks of the specified type nearby',
             parameters: {
                 type: 'object',
-                required: ['blockName'],
+                required: ['blockName', 'amount'],
                 properties: {
                     blockName: { 
                         type: 'string', 
                         description: 'Exact name of the block to collect (e.g., oak_log, not wood)' 
+                    },
+                    amount: {
+                        type: 'integer',
+                        description: 'Number of blocks to collect'
                     }
                 }
             }
