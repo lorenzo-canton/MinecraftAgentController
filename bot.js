@@ -39,7 +39,7 @@ function scanArea(args) {
     return { success: true, blocks };
 }
 
-function collectBlock(args) {
+async function collectBlock(args) {
     const { blockName, bot } = args;
     const blockType = bot.registry.blocksByName[blockName];
     if (!blockType) return { success: false, message: 'Block type not found' };
@@ -52,7 +52,7 @@ function collectBlock(args) {
     if (!block) return { success: false, message: 'Block not found nearby' };
 
     try {
-        bot.collectBlock.collect(block);
+        await bot.collectBlock.collect(block);
         return { success: true, message: `Collected ${blockName}` };
     } catch (err) {
         return { success: false, message: `Failed to collect: ${err.message}` };
@@ -69,7 +69,74 @@ function listInventory(args) {
     return { success: true, inventory: itemList || 'Empty inventory' };
 }
 
-// Tool definitions for the AI (removed scan and inventory as they'll be part of system message)
+// New async functions for item management
+async function craftItem(args) {
+    const { itemName, amount, bot } = args;
+    const qty = parseInt(amount) || 1;
+    
+    const item = bot.registry.itemsByName[itemName];
+    if (!item) return { success: false, message: `Unknown item: ${itemName}` };
+    
+    const craftingTableID = bot.registry.blocksByName.crafting_table.id;
+    const craftingTable = bot.findBlock({
+        matching: craftingTableID
+    });
+    
+    const recipe = bot.recipesFor(item.id, null, 1, craftingTable)[0];
+    if (!recipe) return { success: false, message: `I don't know how to craft ${itemName}` };
+    
+    try {
+        await bot.craft(recipe, qty, craftingTable);
+        return { success: true, message: `Crafted ${qty} x ${itemName}` };
+    } catch (err) {
+        return { success: false, message: `Failed to craft: ${err.message}` };
+    }
+}
+
+async function equipItem(args) {
+    const { itemName, destination, bot } = args;
+    const items = bot.inventory.items();
+    if (bot.registry.isNewerOrEqualTo('1.9') && bot.inventory.slots[45]) {
+        items.push(bot.inventory.slots[45]);
+    }
+    
+    const item = items.filter(item => item.name === itemName)[0];
+    if (!item) return { success: false, message: `I don't have ${itemName}` };
+    
+    try {
+        await bot.equip(item, destination);
+        return { success: true, message: `Equipped ${itemName} to ${destination}` };
+    } catch (err) {
+        return { success: false, message: `Failed to equip: ${err.message}` };
+    }
+}
+
+async function tossItem(args) {
+    const { itemName, amount, bot } = args;
+    const qty = parseInt(amount) || null;
+    
+    const items = bot.inventory.items();
+    if (bot.registry.isNewerOrEqualTo('1.9') && bot.inventory.slots[45]) {
+        items.push(bot.inventory.slots[45]);
+    }
+    
+    const item = items.filter(item => item.name === itemName)[0];
+    if (!item) return { success: false, message: `I don't have ${itemName}` };
+    
+    try {
+        if (qty) {
+            await bot.toss(item.type, null, qty);
+            return { success: true, message: `Tossed ${qty} x ${itemName}` };
+        } else {
+            await bot.tossStack(item);
+            return { success: true, message: `Tossed all ${itemName}` };
+        }
+    } catch (err) {
+        return { success: false, message: `Failed to toss: ${err.message}` };
+    }
+}
+
+// Tool definitions
 const toolDefinitions = [
     {
         type: 'function',
@@ -115,6 +182,69 @@ const toolDefinitions = [
                 }
             }
         }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'craftItem',
+            description: 'Craft a specific item using available materials',
+            parameters: {
+                type: 'object',
+                required: ['itemName'],
+                properties: {
+                    itemName: { 
+                        type: 'string', 
+                        description: 'Name of the item to craft (e.g., stick, wooden_planks)' 
+                    },
+                    amount: { 
+                        type: 'string', 
+                        description: 'Number of items to craft (default: 1)' 
+                    }
+                }
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'equipItem',
+            description: 'Equip an item from inventory to a specific slot',
+            parameters: {
+                type: 'object',
+                required: ['itemName', 'destination'],
+                properties: {
+                    itemName: { 
+                        type: 'string', 
+                        description: 'Name of the item to equip' 
+                    },
+                    destination: { 
+                        type: 'string', 
+                        description: 'Where to equip the item (hand, head, torso, legs, feet, off-hand)' 
+                    }
+                }
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'tossItem',
+            description: 'Drop items from inventory',
+            parameters: {
+                type: 'object',
+                required: ['itemName'],
+                properties: {
+                    itemName: { 
+                        type: 'string', 
+                        description: 'Name of the item to toss' 
+                    },
+                    amount: { 
+                        type: 'string', 
+                        description: 'Amount to toss (if not specified, tosses entire stack)' 
+                    }
+                }
+            }
+        }
     }
 ];
 
@@ -134,14 +264,8 @@ class MinecraftAIBot {
         
         this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
         
-        // Initialize conversation history
         this.messages = [
-            {
-                role: 'system',
-                content: `You are a Minecraft bot assistant. You can help players by moving to them, following them, and collecting blocks. 
-You should always be aware of your surroundings and inventory to make informed decisions.
-Be helpful and friendly in your responses.`
-            }
+            { role: 'system', content: undefined }
         ];
         
         this.availableFunctions = {
@@ -149,31 +273,31 @@ Be helpful and friendly in your responses.`
             followPlayer: (args) => followPlayer({ ...args, bot: this.bot }),
             scanArea: (args) => scanArea({ bot: this.bot }),
             collectBlock: (args) => collectBlock({ ...args, bot: this.bot }),
-            listInventory: (args) => listInventory({ bot: this.bot })
+            listInventory: (args) => listInventory({ bot: this.bot }),
+            craftItem: (args) => craftItem({ ...args, bot: this.bot }),
+            equipItem: (args) => equipItem({ ...args, bot: this.bot }),
+            tossItem: (args) => tossItem({ ...args, bot: this.bot })
         };
 
         this.setupEvents();
     }
 
     async processAICommand(message) {
-        // Get current surroundings and inventory
         const surroundings = await this.availableFunctions.scanArea({});
         const inventory = await this.availableFunctions.listInventory({});
         
-        // Create system message with current state
         const systemMessage = {
             role: 'system',
-            content: `Current surroundings: ${JSON.stringify(surroundings.blocks)}
+            content: `You are a Minecraft bot assistant. You can help players by moving to them, following them, collecting blocks, crafting items, managing inventory, and equipping/dropping items. 
+
+Current surroundings: ${JSON.stringify(surroundings.blocks)}
 Current inventory: ${inventory.inventory}
                      
-You are a Minecraft bot assistant. You can help players by moving to them, following them, and collecting blocks. 
-You should always be aware of your surroundings and inventory to make informed decisions.
-Be helpful and friendly in your responses.`};
+You should always be aware of your surroundings and inventory to make informed decisions.`};
 
         console.log('System message:\n', systemMessage.content)
         console.log('User message:\n', message)
 
-        // Update messages with current system state and new user message
         this.messages = [
             systemMessage,
             ...this.messages.slice(1),
@@ -194,7 +318,8 @@ Be helpful and friendly in your responses.`};
                         console.log('AI calling function:', tool.function.name);
                         console.log('Arguments:', tool.function.arguments);
                         
-                        const output = functionToCall(tool.function.arguments);
+                        // Handle async function calls
+                        const output = await Promise.resolve(functionToCall(tool.function.arguments));
                         console.log('Function output:', output);
                         
                         this.messages.push(response.message);
@@ -210,12 +335,10 @@ Be helpful and friendly in your responses.`};
                     messages: this.messages
                 });
 
-                // Add assistant's response to message history
                 this.messages.push(finalResponse.message);
                 return finalResponse.message.content;
             }
 
-            // Add assistant's response to message history
             console.log(`Assistant:\n${response.message.content}`);
             this.messages.push(response.message);
             return response.message.content;
@@ -228,7 +351,7 @@ Be helpful and friendly in your responses.`};
     setupEvents() {
         this.bot.on('spawn', () => {
             console.log('Bot spawned');
-            this.bot.chat('AI Bot ready! Available commands: go to player, follow player, collect blocks');
+            this.bot.chat('AI Bot ready! I can help with movement, block collection, crafting, and inventory management!');
         });
 
         this.bot.on('chat', async (username, message) => {
