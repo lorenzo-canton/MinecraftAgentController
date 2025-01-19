@@ -1,44 +1,90 @@
 async function collectBlock(args) {
     const { blockName, amount, bot } = args;
-    const blockType = bot.registry.blocksByName[blockName];
     
-    if (!blockType) {
-        return { success: false, message: 'Block type not found' };
+    // Validate input
+    if (!Number.isInteger(amount) || amount < 1) {
+        return { success: false, message: 'Amount must be a positive integer' };
     }
 
-    if (!Number.isInteger(amount) || amount <= 0) {
-        return { success: false, message: 'Amount must be a positive integer' };
+    // Handle related block types
+    const blockTypes = [blockName];
+    if (['coal', 'diamond', 'emerald', 'iron', 'gold', 'lapis_lazuli', 'redstone'].includes(blockName)) {
+        blockTypes.push(`${blockName}_ore`);
+        blockTypes.push(`deepslate_${blockName}_ore`);
+    } else if (blockName.endsWith('_ore')) {
+        blockTypes.push(`deepslate_${blockName}`);
+    } else if (blockName === 'dirt') {
+        blockTypes.push('grass_block');
+    }
+
+    // Validate block types exist
+    const validBlockTypes = blockTypes.filter(type => bot.registry.blocksByName[type]);
+    if (validBlockTypes.length === 0) {
+        return { success: false, message: `Block type not found: ${blockName}` };
     }
 
     let collected = 0;
     const failures = [];
 
     for (let i = 0; i < amount; i++) {
-        const block = bot.findBlock({
-            matching: blockType.id,
-            maxDistance: 10
-        });
+        // Find nearest block of any valid type
+        let block = null;
+        for (const blockType of validBlockTypes) {
+            const foundBlock = bot.findBlock({
+                matching: bot.registry.blocksByName[blockType].id,
+                maxDistance: 64
+            });
+            if (foundBlock) {
+                block = foundBlock;
+                break;
+            }
+        }
 
         if (!block) {
             return {
-                success: false,
-                message: `Only collected ${collected} ${blockName} blocks. No more blocks found nearby.`
+                success: collected > 0,
+                message: collected > 0 
+                    ? `Collected ${collected} blocks. No more ${blockName} blocks found nearby.`
+                    : `No ${blockName} blocks found nearby.`
             };
         }
 
         try {
+            // Equip appropriate tool for the block
+            await bot.tool.equipForBlock(block);
+            
+            // Check if we can harvest with current tool
+            const itemId = bot.heldItem ? bot.heldItem.type : null;
+            if (!block.canHarvest(itemId)) {
+                return {
+                    success: false,
+                    message: `Don't have right tools to harvest ${blockName}.`
+                };
+            }
+
+            // Attempt to collect the block
             await bot.collectBlock.collect(block);
             collected++;
+
         } catch (err) {
             failures.push(err.message);
             
-            // If we've failed too many times, stop trying
-            if (failures.length >= 3) {
+            // Handle inventory full error specifically
+            if (err.name === 'NoChests') {
                 return {
-                    success: false,
-                    message: `Collection stopped after ${collected} blocks. Too many failures: ${failures.join(', ')}`
+                    success: collected > 0,
+                    message: `Inventory full after collecting ${collected} blocks.`
                 };
             }
+            
+            // If we've failed too many times consecutively, stop trying
+            if (failures.length >= 3) {
+                return {
+                    success: collected > 0,
+                    message: `Collection stopped after ${collected} blocks due to repeated failures: ${failures.join(', ')}`
+                };
+            }
+            continue;
         }
     }
 
