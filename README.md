@@ -1,115 +1,116 @@
-# Minecraft Bot Controller
+# Minecraft AI Bot
 
-[Русский](#minecraft-bot-controller-ru) | [Italiano](#minecraft-bot-controller-it)
+An intelligent Minecraft bot powered by LLM (Large Language Model) that can interact with players and perform various tasks in the game. The bot uses mineflayer for game interactions and Ollama for natural language processing.
 
-## Minecraft Bot Controller (IT)
+## Features
 
-### Installazione
+- Natural language interaction with players
+- Pathfinding and navigation capabilities
+- Block collection and inventory management
+- Environment scanning and awareness
+- Player following and assistance
+
+## Prerequisites
+
+Before running the bot, make sure you have:
+
+- Node.js (v14 or higher)
+- Minecraft Java Edition (version 1.20.4)
+- Ollama installed and running locally
+- A running Minecraft server
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd minecraft-ai-bot
+```
+
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-### Configurazione
-Configura il bot nel file `.env`:
-```
-MC_HOST=localhost
-MC_PORT=25565
-MC_USERNAME=BotTest
-PORT=3000
+3. Make sure Ollama is running with the required model:
+```bash
+ollama run hermes3:8b-llama3.1-q4_K_M
 ```
 
-### Avvio
+## Configuration
+
+Edit the configuration in `main.js` to match your setup:
+
+```javascript
+const config = {
+    host: 'localhost',
+    port: 25565,
+    username: 'AIBot',
+    aiModel: 'hermes3:8b-llama3.1-q4_K_M',
+    version: '1.20.4'
+};
+```
+
+## Usage
+
+1. Start your Minecraft server
+2. Run the bot:
 ```bash
 node main.js
 ```
 
-### Comandi del Bot
-#### Movimento
-- `!gotoplayer <nome> <distanza>` - Va verso un giocatore
-- `!gotonearestplayer <distanza>` - Va verso il giocatore più vicino
-- `!gotocoord <x> <y> <z>` - Va alle coordinate specificate
-- `!follow <nome> <distanza>` - Segue un giocatore
-- `!stop` - Si ferma
-- `!lookat <nome>` - Guarda un giocatore
-- `!scan [raggio]` - Scansiona i blocchi nel raggio (max 10)
+The bot will connect to the server and announce its presence. Players can interact with it using natural language commands in the game chat.
 
-#### Inventario
-- `!list` - Mostra l'inventario
-- `!toss <oggetto> [quantità]` - Getta oggetti
-- `!equip <slot> <oggetto>` - Equipaggia un oggetto
-- `!unequip <slot>` - Rimuove un oggetto equipaggiato
-- `!use` - Usa l'oggetto in mano
-- `!craft <oggetto> <quantità>` - Crafta un oggetto
-- `!collect <blocco>` - Raccoglie il blocco più vicino
+### Available Commands
 
-### API REST
-- GET `/bot/scan?radius=10` - Scansiona i blocchi
-- GET `/bot/inventory` - Mostra l'inventario
-- POST `/bot/goto-player` - Va verso un giocatore
-- POST `/bot/goto-nearest` - Va verso il giocatore più vicino
-- POST `/bot/goto-coord` - Va alle coordinate
-- POST `/bot/follow` - Segue un giocatore
-- POST `/bot/stop` - Si ferma
-- POST `/bot/look-at` - Guarda un giocatore
-- POST `/bot/toss` - Getta oggetti
-- POST `/bot/equip` - Equipaggia un oggetto
-- POST `/bot/unequip` - Rimuove un oggetto
-- POST `/bot/use` - Usa l'oggetto in mano
-- POST `/bot/craft` - Crafta un oggetto
-- POST `/bot/collect` - Raccoglie un blocco
+Players can use natural language to request the following actions:
 
-## Minecraft Bot Controller (RU)
+- Go to a specific player
+- Follow a player
+- Collect specific blocks
+- Check inventory
+- Scan the surrounding area
 
-### Установка
-```bash
-npm install
-```
+Examples:
+- "Come to me"
+- "Follow player123"
+- "Collect some oak logs"
+- "What's in your inventory?"
+- "What blocks are around you?"
 
-### Конфигурация
-Настройте бота в файле `.env`:
-```
-MC_HOST=localhost
-MC_PORT=25565
-MC_USERNAME=BotTest
-PORT=3000
-```
+## Project Structure
 
-### Запуск
-```bash
-node main.js
-```
+- `main.js` - Entry point and configuration
+- `bot.js` - Main bot implementation with AI integration
+  - MinecraftAIBot class
+  - Event handling
+  - Command processing
+  - Tool definitions
 
-### Команды бота
-#### Перемещение
-- `!gotoplayer <имя> <расстояние>` - Идти к игроку
-- `!gotonearestplayer <расстояние>` - Идти к ближайшему игроку
-- `!gotocoord <x> <y> <z>` - Идти к координатам
-- `!follow <имя> <расстояние>` - Следовать за игроком
-- `!stop` - Остановиться
-- `!lookat <имя>` - Посмотреть на игрока
-- `!scan [радиус]` - Сканировать блоки (макс. радиус 10)
+## Dependencies
 
-#### Инвентарь
-- `!list` - Показать инвентарь
-- `!toss <предмет> [количество]` - Выбросить предметы
-- `!equip <слот> <предмет>` - Экипировать предмет
-- `!unequip <слот>` - Снять предмет
-- `!use` - Использовать предмет в руке
-- `!craft <предмет> <количество>` - Создать предмет
-- `!collect <блок>` - Собрать ближайший блок
+- `mineflayer` - Minecraft bot client
+- `mineflayer-pathfinder` - Navigation and pathfinding
+- `mineflayer-collectblock` - Block collection functionality
+- `ollama` - LLM integration
 
-### API REST
-- GET `/bot/scan?radius=10` - Сканировать блоки
-- GET `/bot/inventory` - Показать инвентарь
-- POST `/bot/goto-player` - Идти к игроку
-- POST `/bot/goto-nearest` - Идти к ближайшему игроку
-- POST `/bot/goto-coord` - Идти к координатам
-- POST `/bot/follow` - Следовать за игроком
-- POST `/bot/stop` - Остановиться
-- POST `/bot/look-at` - Посмотреть на игрока
-- POST `/bot/toss` - Выбросить предметы
-- POST `/bot/equip` - Экипировать предмет
-- POST `/bot/unequip` - Снять предмет
-- POST `/bot/use` - Использовать предмет
-- POST `/bot/craft` - Создать предмет
-- POST `/bot/collect` - Собрать блок
+## Error Handling
+
+The bot includes basic error handling for:
+- Connection issues
+- AI processing errors
+- Invalid commands
+- Missing blocks/players
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
+
+## License
+
+[Add your chosen license here]
+
+## Acknowledgments
+
+- Mineflayer team for the excellent Minecraft bot framework
+- Ollama team for the local LLM capabilities
