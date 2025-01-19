@@ -139,9 +139,8 @@ class MinecraftAIBot {
             {
                 role: 'system',
                 content: `You are a Minecraft bot assistant. You can help players by moving to them, following them, and collecting blocks. 
-                         You should always be aware of your surroundings and inventory to make informed decisions.
-                         When players ask about specific blocks, check if they are visible in your surroundings first.
-                         Be helpful and friendly in your responses.`
+You should always be aware of your surroundings and inventory to make informed decisions.
+Be helpful and friendly in your responses.`
             }
         ];
         
@@ -169,7 +168,6 @@ Current inventory: ${inventory.inventory}
                      
 You are a Minecraft bot assistant. You can help players by moving to them, following them, and collecting blocks. 
 You should always be aware of your surroundings and inventory to make informed decisions.
-When players ask about specific blocks, check if they are visible in your surroundings first.
 Be helpful and friendly in your responses.`};
 
         console.log('System message:\n', systemMessage.content)
