@@ -4,7 +4,8 @@ const config = {
     host: 'localhost',
     port: 25565,
     username: 'AIBot',
-    aiModel: 'hermes3:8b-llama3.1-q4_K_M',
+    aiModel: 'command-r7b:latest',
+    planningModel: 'deepseek-r1:14b',
     version: '1.20.4'
 };
 

@@ -13,6 +13,7 @@ class MinecraftAIBot {
             port: 25565,
             username: 'AIBot',
             aiModel: 'llama2',
+            planningModel: 'llama2',
             ...config
         };
         
