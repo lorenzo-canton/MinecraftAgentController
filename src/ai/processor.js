@@ -1,6 +1,8 @@
 // src/ai/processor.js
 const { Ollama } = require('ollama');
 const { toolDefinitions } = require('../tools/definitions');
+const fs = require('fs').promises;
+const path = require('path');
 
 // Schema for planner output
 // Forces the planner to use only available tool actions
@@ -63,6 +65,45 @@ class AIProcessor {
         this.config = config;
         this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
         this.resetMessages();
+        this.setupLoggingDirectory();
+    }
+
+    async setupLoggingDirectory() {
+        // Create logs directory if it doesn't exist
+        const logsDir = path.join(process.cwd(), 'logs');
+        try {
+            await fs.mkdir(logsDir, { recursive: true });
+        } catch (err) {
+            console.error('Error creating logs directory:', err);
+        }
+    }
+
+    async logChat(type, messages) {
+        try {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            const filename = path.join(process.cwd(), 'logs', `${type}-chat-${today}.json`);
+            
+            // Read existing logs or create new array
+            let logs = [];
+            try {
+                const existingContent = await fs.readFile(filename, 'utf8');
+                logs = JSON.parse(existingContent);
+            } catch (err) {
+                // File doesn't exist or is invalid JSON, start with empty array
+            }
+
+            // Add timestamp to the log entry
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                messages: messages
+            };
+            logs.push(logEntry);
+
+            // Write back to file
+            await fs.writeFile(filename, JSON.stringify(logs, null, 2));
+        } catch (err) {
+            console.error(`Error logging ${type} chat:`, err);
+        }
     }
 
     resetMessages() {
@@ -73,15 +114,15 @@ class AIProcessor {
 
     async processCommand(userMessage, availableFunctions) {
         try {
-            // Reset messages at the start of each command
             this.resetMessages();
-
-            // Update game state for both planner and worker
             await this.updateGameState(availableFunctions);
             
             // Get the action plan from the planning model
             const plan = await this.generatePlan(userMessage);
             console.log('\n\nGenerated plan:', plan);
+
+            // Log planner chat after plan generation
+            await this.logChat('planner', this.plannerMessages);
 
             // Execute each step in the plan
             for (const step of plan.steps) {
@@ -89,8 +130,6 @@ class AIProcessor {
                 console.log(`Details: ${step.details}`);
                 console.log(`Rationale: ${step.rationale}`);
                 
-                // Create a compound message that includes both the original request
-                // and the current step details
                 const workerPrompt = {
                     userQuery: userMessage,
                     action: step.action,
@@ -98,27 +137,29 @@ class AIProcessor {
                     rationale: step.rationale
                 };
                 
-                // Get AI response for this specific step
                 const response = await this.getAIResponse(workerPrompt);
                 
-                // Execute any tool calls from the response
                 if (response.message.tool_calls) {
                     const toolResult = await this.executeToolCalls(response.message.tool_calls, availableFunctions);
-                    // Return early if any tool execution failed
                     if (!toolResult.success) {
+                        // Log worker chat before returning error
+                        await this.logChat('worker', this.workerMessages);
                         return toolResult.message;
                     }
                 }
                 
-                // Add the response to worker message history
                 this.workerMessages.push(response.message);
             }
 
-            // Return a standard success message
+            // Log worker chat after successful completion
+            await this.logChat('worker', this.workerMessages);
             return 'Task completed successfully!';
             
         } catch (error) {
             console.error('AI processing error:', error);
+            // Log both chats in case of error
+            await this.logChat('planner', this.plannerMessages);
+            await this.logChat('worker', this.workerMessages);
             return 'Sorry, I encountered an error processing your request.';
         }
     }
