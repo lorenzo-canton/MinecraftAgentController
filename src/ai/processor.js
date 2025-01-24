@@ -117,23 +117,23 @@ class AIProcessor {
             .map(item => `- ${item}`)
             .join('\n') || '- Inventario vuoto';
 
-        return `# Stato del Bot Minecraft
+        return `# Minecraft Bot Status
 
-## Dintorni (raggio 10 blocchi):
+## Surroundings (10 block radius):
 ${surroundingsList}
 
-## Inventario:
+## Inventory:
 ${inventoryList}
 
-Sei un assistente bot per Minecraft. Puoi aiutare i giocatori:
-- Muovendoti verso di loro
-- Seguendoli
-- Raccogliendo blocchi
-- Creando oggetti
-- Gestendo l'inventario
-- Equipaggiando/gettando oggetti
+You are a Minecraft bot assistant. You can help players by:
+- Moving towards them
+- Following them
+- Collecting blocks
+- Crafting items
+- Managing inventory
+- Equipping/dropping items
 
-Dovresti sempre essere consapevole dei dintorni e dell'inventario per prendere decisioni informate.`;
+You should always be aware of your surroundings and inventory to make informed decisions.`;
     }
 }
 
