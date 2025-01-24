@@ -223,12 +223,34 @@ Provide output in JSON format with:
     }
 
     createSystemPrompt(surroundings, inventory) {
-        return `You are a Minecraft bot assistant. You can help players by moving to them, following them, collecting blocks, crafting items, managing inventory, and equipping/dropping items. 
+        // Format surroundings as markdown list
+        const surroundingsList = Object.entries(surroundings.blocks)
+            .map(([block, count]) => `- ${block}: ${count}`)
+            .join('\n');
+        
+        // Format inventory as markdown list
+        const inventoryList = inventory.inventory
+            .split(', ')
+            .map(item => `- ${item}`)
+            .join('\n') || '- Inventario vuoto';
 
-Current surroundings: ${JSON.stringify(surroundings.blocks)}
-Current inventory: ${inventory.inventory}
-                     
-You should always be aware of your surroundings and inventory to make informed decisions.`;
+        return `# Stato del Bot Minecraft
+
+## Dintorni (raggio 10 blocchi):
+${surroundingsList}
+
+## Inventario:
+${inventoryList}
+
+Sei un assistente bot per Minecraft. Puoi aiutare i giocatori:
+- Muovendoti verso di loro
+- Seguendoli
+- Raccogliendo blocchi
+- Creando oggetti
+- Gestendo l'inventario
+- Equipaggiando/gettando oggetti
+
+Dovresti sempre essere consapevole dei dintorni e dell'inventario per prendere decisioni informate.`;
     }
 
     updateMessages(systemMessage) {
