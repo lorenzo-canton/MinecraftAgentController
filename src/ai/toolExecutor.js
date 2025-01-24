@@ -19,6 +19,11 @@ Please execute this action according to the provided instructions while keeping 
         this.workerMessages.push({ role: 'user', content: formattedMessage });
         console.log('Worker processing message:\n', formattedMessage);
 
+        if (!this.config.aiModel) {
+            throw new Error('AI model configuration is missing');
+        }
+        
+        console.log('Using AI model:', this.config.aiModel);
         return await this.ollama.chat({
             model: this.config.aiModel,
             messages: this.workerMessages,

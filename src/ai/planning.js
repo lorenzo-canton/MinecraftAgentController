@@ -96,6 +96,11 @@ Provide output in JSON format with:
             { role: 'user', content: message }
         ];
 
+        if (!this.config.planningModel) {
+            throw new Error('Planning model configuration is missing');
+        }
+        
+        console.log('Using planning model:', this.config.planningModel);
         const plannerResponse = await this.ollama.chat({
             model: this.config.planningModel,
             messages: this.plannerMessages,
