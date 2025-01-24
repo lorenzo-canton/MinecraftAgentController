@@ -1,3 +1,5 @@
+const { toolDefinitions } = require('../tools/definitions');
+
 class ToolExecutor {
     constructor(ollama, config) {
         this.ollama = ollama;
