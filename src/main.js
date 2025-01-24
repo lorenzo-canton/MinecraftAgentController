@@ -5,7 +5,7 @@ const config = {
     port: 25565,
     username: 'AIBot',
     aiModel: 'command-r7b:latest',
-    planningModel: 'deepseek-r1:14b',
+    planningModel: 'deepseek-r1:32b',
     version: '1.20.4'
 };
 
