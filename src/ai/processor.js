@@ -24,37 +24,61 @@ class AIProcessor {
         }
     }
 
-    async logChat(type, messages) {
+    async logExecution(type, executionId, entry) {
         try {
             const today = new Date().toISOString().split('T')[0];
-            const filename = path.join(process.cwd(), 'logs', `${type}-chat-${today}.json`);
+            const filename = path.join(process.cwd(), 'logs', `${type}-executions-${today}.json`);
             
-            let logs = [];
+            let executions = [];
             try {
                 const existingContent = await fs.readFile(filename, 'utf8');
-                logs = JSON.parse(existingContent);
+                executions = JSON.parse(existingContent);
             } catch (err) {}
 
-            const logEntry = {
-                timestamp: new Date().toISOString(),
-                messages: messages
-            };
-            logs.push(logEntry);
+            // Trova o crea l'esecuzione corrente
+            let currentExecution = executions.find(e => e.id === executionId);
+            if (!currentExecution) {
+                currentExecution = {
+                    id: executionId,
+                    startTime: new Date().toISOString(),
+                    entries: []
+                };
+                executions.push(currentExecution);
+            }
 
-            await fs.writeFile(filename, JSON.stringify(logs, null, 2));
+            // Aggiungi il nuovo entry
+            currentExecution.entries.push({
+                timestamp: new Date().toISOString(),
+                ...entry
+            });
+
+            await fs.writeFile(filename, JSON.stringify(executions, null, 2));
         } catch (err) {
-            console.error(`Error logging ${type} chat:`, err);
+            console.error(`Error logging ${type} execution:`, err);
         }
     }
 
     async processCommand(userMessage, availableFunctions) {
+        const executionId = Date.now().toString(); // ID unico per ogni esecuzione
+        
         try {
+            // Log dell'input iniziale
+            await this.logExecution('planner', executionId, {
+                type: 'input',
+                message: userMessage
+            });
+
             await this.updateGameState(availableFunctions);
             
             const plan = await this.planner.generatePlan(userMessage);
             console.log('\n\nGenerated plan:', plan);
 
-            await this.logChat('planner', this.planner.plannerMessages);
+            // Log del piano generato
+            await this.logExecution('planner', executionId, {
+                type: 'plan',
+                plan: plan,
+                messages: this.planner.plannerMessages
+            });
 
             for (const step of plan.steps) {
                 console.log(`\n\nExecuting action: ${step.action}`);
@@ -68,6 +92,13 @@ class AIProcessor {
                     rationale: step.rationale
                 };
                 
+                // Log prima di eseguire l'azione
+                await this.logExecution('worker', executionId, {
+                    type: 'action_start',
+                    step: step,
+                    prompt: workerPrompt
+                });
+
                 const response = await this.toolExecutor.getAIResponse(workerPrompt);
                 
                 if (response.message.tool_calls) {
@@ -76,20 +107,47 @@ class AIProcessor {
                         availableFunctions
                     );
                     
+                    // Log del risultato dell'azione
+                    await this.logExecution('worker', executionId, {
+                        type: 'action_result',
+                        tool_calls: response.message.tool_calls,
+                        result: toolResult,
+                        messages: this.toolExecutor.workerMessages
+                    });
+
                     if (!toolResult.success) {
-                        await this.logChat('worker', this.toolExecutor.workerMessages);
                         return toolResult.message;
                     }
                 }
             }
 
-            await this.logChat('worker', this.toolExecutor.workerMessages);
+            // Log del completamento
+            await this.logExecution('worker', executionId, {
+                type: 'completion',
+                status: 'success',
+                final_messages: this.toolExecutor.workerMessages
+            });
+
             return 'Task completed successfully!';
             
         } catch (error) {
             console.error('AI processing error:', error);
-            await this.logChat('planner', this.planner.plannerMessages);
-            await this.logChat('worker', this.toolExecutor.workerMessages);
+            
+            // Log dell'errore
+            await this.logExecution('planner', executionId, {
+                type: 'error',
+                error: error.message,
+                stack: error.stack,
+                messages: this.planner.plannerMessages
+            });
+
+            await this.logExecution('worker', executionId, {
+                type: 'error',
+                error: error.message,
+                stack: error.stack,
+                messages: this.toolExecutor.workerMessages
+            });
+
             return 'Sorry, I encountered an error processing your request.';
         }
     }
