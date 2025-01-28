@@ -51,6 +51,23 @@ const toolDefinitions = [
     {
         type: 'function',
         function: {
+            name: 'placeBlock',
+            description: 'Place a specific block in front of the bot',
+            parameters: {
+                type: 'object',
+                required: ['blockName'],
+                properties: {
+                    blockName: {
+                        type: 'string',
+                        description: 'The type of block to place (e.g., stone, dirt, torch)'
+                    }
+                }
+            }
+        }
+    },
+    {
+        type: 'function',
+        function: {
             name: 'craftItem',
             description: 'Craft a specific item using available materials',
             parameters: {
