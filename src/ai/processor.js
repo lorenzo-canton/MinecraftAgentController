@@ -24,66 +24,79 @@ class AIProcessor {
         }
     }
 
-    async logExecution(type, executionId, entry) {
+    async logConversation(type, executionId, data) {
         try {
-            const today = new Date().toISOString().split('T')[0];
-            const filename = path.join(process.cwd(), 'logs', `${type}-executions-${today}.json`);
+            const filename = path.join(process.cwd(), 'logs', `${type}-messages.json`);
             
             let executions = [];
             try {
                 const existingContent = await fs.readFile(filename, 'utf8');
                 executions = JSON.parse(existingContent);
-            } catch (err) {}
-
-            // Trova o crea l'esecuzione corrente
-            let currentExecution = executions.find(e => e.id === executionId);
-            if (!currentExecution) {
-                currentExecution = {
-                    id: executionId,
-                    startTime: new Date().toISOString(),
-                    entries: []
-                };
-                executions.push(currentExecution);
+            } catch (err) {
+                // File doesn't exist yet, start with empty array
             }
 
-            // Aggiungi il nuovo entry
-            currentExecution.entries.push({
+            // Find or create execution entry
+            let executionEntry = executions.find(e => e.id === executionId);
+            if (!executionEntry) {
+                executionEntry = {
+                    id: executionId,
+                    timestamp: new Date().toISOString(),
+                    conversation: []
+                };
+                executions.push(executionEntry);
+            }
+
+            // Add new message to conversation
+            executionEntry.conversation.push({
                 timestamp: new Date().toISOString(),
-                ...entry
+                ...data
             });
+
+            // Keep only the last 1000 executions to manage file size
+            if (executions.length > 1000) {
+                executions = executions.slice(-1000);
+            }
 
             await fs.writeFile(filename, JSON.stringify(executions, null, 2));
         } catch (err) {
-            console.error(`Error logging ${type} execution:`, err);
+            console.error(`Error logging ${type} messages:`, err);
         }
     }
 
     async processCommand(userMessage, availableFunctions) {
-        const executionId = Date.now().toString(); // ID unico per ogni esecuzione
+        const executionId = Date.now().toString();
         
         try {
-            // Log dell'input iniziale
-            await this.logExecution('planner', executionId, {
-                type: 'input',
-                message: userMessage
+            // Log user message
+            await this.logConversation('planner', executionId, {
+                type: 'user_message',
+                content: userMessage
             });
 
             await this.updateGameState(availableFunctions);
             
+            // Generate plan
             const plan = await this.planner.generatePlan(userMessage);
-            console.log('\n\nGenerated plan:', plan);
+            console.log('\nGenerated plan:', plan);
 
-            // Log del piano generato
-            await this.logExecution('planner', executionId, {
-                type: 'plan',
-                plan: plan,
-                messages: this.planner.plannerMessages
+            // Log generated plan
+            await this.logConversation('planner', executionId, {
+                type: 'generated_plan',
+                content: plan
             });
 
+            // Execute each step
             for (const step of plan.steps) {
-                console.log(`\n\nExecuting action: ${step.action}`);
-                console.log(`Details: ${step.details}`);
-                console.log(`Rationale: ${step.rationale}`);
+                console.log(`\nExecuting action: ${step.action}`);
+                
+                // Log step start
+                await this.logConversation('worker', executionId, {
+                    type: 'step_start',
+                    action: step.action,
+                    details: step.details,
+                    rationale: step.rationale
+                });
                 
                 const workerPrompt = {
                     userQuery: userMessage,
@@ -92,14 +105,13 @@ class AIProcessor {
                     rationale: step.rationale
                 };
                 
-                // Log prima di eseguire l'azione
-                await this.logExecution('worker', executionId, {
-                    type: 'action_start',
-                    step: step,
-                    prompt: workerPrompt
-                });
-
                 const response = await this.toolExecutor.getAIResponse(workerPrompt);
+                
+                // Log AI response
+                await this.logConversation('worker', executionId, {
+                    type: 'ai_response',
+                    content: response.message
+                });
                 
                 if (response.message.tool_calls) {
                     const toolResult = await this.toolExecutor.executeToolCalls(
@@ -107,25 +119,27 @@ class AIProcessor {
                         availableFunctions
                     );
                     
-                    // Log del risultato dell'azione
-                    await this.logExecution('worker', executionId, {
-                        type: 'action_result',
+                    // Log tool result
+                    await this.logConversation('worker', executionId, {
+                        type: 'tool_result',
                         tool_calls: response.message.tool_calls,
-                        result: toolResult,
-                        messages: this.toolExecutor.workerMessages
+                        result: toolResult
                     });
 
                     if (!toolResult.success) {
+                        await this.logConversation('worker', executionId, {
+                            type: 'execution_error',
+                            error: toolResult.message
+                        });
                         return toolResult.message;
                     }
                 }
             }
 
-            // Log del completamento
-            await this.logExecution('worker', executionId, {
+            // Log successful completion
+            await this.logConversation('worker', executionId, {
                 type: 'completion',
-                status: 'success',
-                final_messages: this.toolExecutor.workerMessages
+                status: 'success'
             });
 
             return 'Task completed successfully!';
@@ -133,19 +147,17 @@ class AIProcessor {
         } catch (error) {
             console.error('AI processing error:', error);
             
-            // Log dell'errore
-            await this.logExecution('planner', executionId, {
+            // Log error state
+            await this.logConversation('planner', executionId, {
                 type: 'error',
                 error: error.message,
-                stack: error.stack,
-                messages: this.planner.plannerMessages
+                stack: error.stack
             });
 
-            await this.logExecution('worker', executionId, {
+            await this.logConversation('worker', executionId, {
                 type: 'error',
                 error: error.message,
-                stack: error.stack,
-                messages: this.toolExecutor.workerMessages
+                stack: error.stack
             });
 
             return 'Sorry, I encountered an error processing your request.';
@@ -173,7 +185,7 @@ class AIProcessor {
         const inventoryList = inventory.inventory
             .split(', ')
             .map(item => `- ${item}`)
-            .join('\n') || '- Inventario vuoto';
+            .join('\n') || '- Empty inventory';
 
         return `# Minecraft Bot Status
 
