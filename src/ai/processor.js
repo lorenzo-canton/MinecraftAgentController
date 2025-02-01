@@ -168,12 +168,16 @@ class AIProcessor {
         const surroundings = await availableFunctions.scanArea();
         const inventory = await availableFunctions.listInventory();
         
+        // Update planner's world state
+        this.planner.updateWorldState(surroundings, inventory);
+        
+        // Create system message for tool executor
         const systemMessage = {
             role: 'system',
             content: this.createSystemPrompt(surroundings, inventory)
         };
-
-        this.planner.updateMessages(systemMessage);
+        
+        // Update tool executor's messages
         this.toolExecutor.updateMessages(systemMessage);
     }
 

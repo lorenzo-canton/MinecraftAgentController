@@ -1,8 +1,5 @@
 const { toolDefinitions } = require('../tools/definitions');
 
-// Schema for planner output
-// Forces the planner to use only available tool actions
-// and provide detailed instructions for each step
 const planSchema = {
     type: "object",
     properties: {
@@ -59,21 +56,42 @@ class Planner {
     constructor(ollama, config) {
         this.ollama = ollama;
         this.config = config;
-        this.plannerMessages = [{ role: 'system', content: undefined }];
+        this.worldState = {
+            surroundings: {},
+            inventory: ''
+        };
     }
 
-    async generatePlan(message) {
-        // Create a description of available actions from tool definitions
+    createSystemPrompt() {
+        // Create action descriptions
         const actionDescriptions = toolDefinitions.map(tool => {
             return `${tool.function.name}: ${tool.function.description}
                    Parameters: ${JSON.stringify(tool.function.parameters.properties)}`;
         }).join('\n\n');
 
-        // Add planning-specific system message
-        const planningSystemMessage = {
-            role: 'system',
-            content: `You are a planning assistant for a Minecraft bot. Your job is to:
-1. Analyze the user's request and current game state
+        // Create world state description
+        const surroundingsList = Object.entries(this.worldState.surroundings)
+            .map(([block, count]) => `- ${block}: ${count}`)
+            .join('\n');
+        
+        const inventoryList = this.worldState.inventory
+            .split(', ')
+            .map(item => `- ${item}`)
+            .join('\n') || '- Empty inventory';
+
+        // Combine world state and planning instructions
+        return `# Current Minecraft World State
+
+## Surroundings (10 block radius):
+${surroundingsList}
+
+## Inventory:
+${inventoryList}
+
+# Planning Instructions
+
+You are a planning assistant for a Minecraft bot. Your job is to:
+1. Analyze the user's request and current game state above
 2. Develop a strategy considering available resources and constraints
 3. Break down user requests into a sequence of specific tool actions
 4. Only use these available actions: ${toolDefinitions.map(tool => tool.function.name).join(', ')}
@@ -87,23 +105,23 @@ ${actionDescriptions}
 
 Provide output in JSON format with:
 - reasoning: object containing analysis, strategy, and considerations
-- steps: array of actions with details and rationale`
-        };
+- steps: array of actions with details and rationale
 
-        this.plannerMessages = [
-            planningSystemMessage,
-            ...this.plannerMessages.slice(1),
-            { role: 'user', content: message }
-        ];
+Always consider the current surroundings and inventory when planning actions.`;
+    }
 
+    async generatePlan(message) {
         if (!this.config.planningModel) {
             throw new Error('Planning model configuration is missing');
         }
-        
+
         console.log('Using planning model:', this.config.planningModel);
         const plannerResponse = await this.ollama.chat({
             model: this.config.planningModel,
-            messages: this.plannerMessages,
+            messages: [
+                { role: 'system', content: this.createSystemPrompt() },
+                { role: 'user', content: message }
+            ],
             format: planSchema
         });
 
@@ -112,11 +130,11 @@ Provide output in JSON format with:
         return plan;
     }
 
-    updateMessages(systemMessage) {
-        this.plannerMessages = [
-            systemMessage,
-            ...this.plannerMessages.slice(1)
-        ];
+    updateWorldState(surroundings, inventory) {
+        this.worldState = {
+            surroundings: surroundings.blocks,
+            inventory: inventory.inventory
+        };
     }
 }
 
