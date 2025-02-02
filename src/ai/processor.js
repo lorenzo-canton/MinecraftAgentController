@@ -13,13 +13,19 @@ class AIProcessor {
     async processCommand(message, availableFunctions) {
         try {
             await this.updateGameState(availableFunctions);
-            const response = await this.getAIResponse(message);
-            
-            if (response.message.tool_calls) {
+            let response = await this.getAIResponse(message);
+            let iterationCount = 0;
+    
+            while (response.message.tool_calls && iterationCount < this.config.maxToolIterations) {
                 await this.executeToolCalls(response.message.tool_calls, availableFunctions);
-                return await this.getFinalResponse();
+                response = await this.getAIResponse(); // Chiamata successiva senza nuovo messaggio utente
+                iterationCount++;
+                
+                if (iterationCount === this.config.maxToolIterations) {
+                    console.warn('Raggiunto il massimo numero di iterazioni per tool call');
+                }
             }
-
+    
             this.messages.push(response.message);
             return response.message.content;
             
@@ -72,13 +78,15 @@ You should always be aware of your surroundings and inventory to make informed d
     }
 
     async getAIResponse(message) {
-        this.messages.push({ role: 'user', content: message });
-        console.log('User message:\n', message);
-
+        if (message) {
+            this.messages.push({ role: 'user', content: message });
+            console.log('User message:\n', message);
+        }
+        
         return await this.ollama.chat({
             model: this.config.aiModel,
             messages: this.messages,
-            tools: toolDefinitions
+            tools: toolDefinitions // Manteniamo gli strumenti per tutte le chiamate
         });
     }
 
@@ -96,23 +104,32 @@ You should always be aware of your surroundings and inventory to make informed d
             console.warn(`Function ${functionName} not found in available functions`);
             return;
         }
-
-        console.log('AI calling function:', functionName);
-        console.log('Arguments:', tool.function.arguments);
-        
-        const parsedArgs = this.parseToolArguments(tool.function.arguments);
-        if (!parsedArgs) return;
-
+    
         try {
+            console.log('AI calling function:', functionName);
+            const parsedArgs = this.parseToolArguments(tool.function.arguments);
+            if (!parsedArgs) return;
+    
             const output = await Promise.resolve(functionToCall(parsedArgs));
             console.log('Function output:', output);
-            
+    
+            // Aggiungiamo la risposta dello strumento con ID della chiamata
             this.messages.push({
                 role: 'tool',
-                content: JSON.stringify(output)
+                content: output.message,
+                tool_call_id: tool.id,
+                name: functionName
             });
+    
         } catch (e) {
             console.error(`Error executing function ${functionName}:`, e);
+            // Aggiungiamo un messaggio di errore per l'AI
+            this.messages.push({
+                role: 'tool',
+                content: JSON.stringify({ error: e.message }),
+                tool_call_id: tool.id,
+                name: functionName
+            });
         }
     }
 
