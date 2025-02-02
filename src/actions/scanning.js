@@ -14,7 +14,10 @@ function scanArea(args) {
             }
         }
     }
-    return { success: true, blocks };
+    return { 
+        success: true, 
+        blocks: Object.keys(blocks).length > 0 ? blocks : 'No nearby blocks'
+    };
 }
 
 module.exports = { scanArea };

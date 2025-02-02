@@ -43,11 +43,24 @@ class AIProcessor {
     }
 
     createSystemPrompt(surroundings, inventory) {
+        const formatAsMarkdownList = (dict) => {
+            if (typeof dict === 'string') return dict; // Gestione inventario vuoto
+            return Object.entries(dict)
+                .map(([item, count]) => `- ${item}: ${count}`)
+                .join('\n');
+        };
+    
+        const surroundingsList = formatAsMarkdownList(surroundings.blocks);
+        const inventoryList = formatAsMarkdownList(inventory.inventory);
+    
         return `You are a Minecraft bot assistant. You can help players by moving to them, following them, collecting blocks, crafting items, managing inventory, and equipping/dropping items. 
-
-Current surroundings: ${JSON.stringify(surroundings.blocks)}
-Current inventory: ${inventory.inventory}
-                     
+    
+Current surroundings (blocks within 10 blocks radius):
+${surroundingsList}
+    
+Current inventory:
+${inventoryList}
+    
 You should always be aware of your surroundings and inventory to make informed decisions.`;
     }
 

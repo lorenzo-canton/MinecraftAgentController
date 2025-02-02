@@ -4,7 +4,7 @@ const config = {
     host: 'localhost',
     port: 25565,
     username: 'AIBot',
-    aiModel: 'hermes3:8b-llama3.1-q4_K_M',
+    aiModel: 'mistral-small:latest',
     version: '1.20.4'
 };
 

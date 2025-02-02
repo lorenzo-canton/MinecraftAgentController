@@ -100,8 +100,17 @@ function listInventory(args) {
     if (bot.registry.isNewerOrEqualTo('1.9') && bot.inventory.slots[45]) {
         items.push(bot.inventory.slots[45]);
     }
-    const itemList = items.map(i => `${i.name} x ${i.count}`).join(', ');
-    return { success: true, inventory: itemList || 'Empty inventory' };
+    
+    // Creiamo un dizionario "oggetto: quantità"
+    const inventoryDict = {};
+    items.forEach(item => {
+        inventoryDict[item.name] = (inventoryDict[item.name] || 0) + item.count;
+    });
+    
+    return { 
+        success: true, 
+        inventory: Object.keys(inventoryDict).length > 0 ? inventoryDict : 'Empty inventory'
+    };
 }
 
 async function equipItem(args) {
