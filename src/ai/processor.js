@@ -59,14 +59,22 @@ class AIProcessor {
         const surroundingsList = formatAsMarkdownList(surroundings.blocks);
         const inventoryList = formatAsMarkdownList(inventory.inventory);
     
-        return `You are a Minecraft bot assistant. You can help players by moving to them, following them, collecting blocks, crafting items, managing inventory, and equipping/dropping items. 
-    
-Current surroundings (blocks within 10 blocks radius):
+        return `# Minecraft Bot Status
+
+## Surroundings (10 block radius):
 ${surroundingsList}
-    
-Current inventory:
+
+## Inventory:
 ${inventoryList}
-    
+
+You are a Minecraft bot assistant. You can help players by:
+- Moving towards them
+- Following them
+- Collecting blocks
+- Crafting items
+- Managing inventory
+- Equipping/dropping items
+
 You should always be aware of your surroundings and inventory to make informed decisions.`;
     }
 
