@@ -6,7 +6,9 @@ const config = {
     username: 'AIBot',
     aiModel: 'mistral-small:latest',
     version: '1.20.4',
-    maxToolIterations: 5
+    maxToolIterations: 5,
+    apiKey: "none",
+    baseURL: 'http://127.0.0.1:11434/v1'
 };
 
 try {

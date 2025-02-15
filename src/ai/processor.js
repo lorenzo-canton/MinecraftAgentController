@@ -1,12 +1,12 @@
 // src/ai/processor.js
-const { Ollama } = require('ollama');
+const { OpenAI } = require('openai');
 const { toolDefinitions } = require('../tools/definitions');
 
 class AIProcessor {
     constructor(bot, config) {
         this.bot = bot;
         this.config = config;
-        this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
+        this.llmClient = new OpenAI({ apiKey: config.apiKey, baseURL: config.baseURL });
         this.messages = [{ role: 'system', content: undefined }];
     }
 
@@ -16,8 +16,8 @@ class AIProcessor {
             let response = await this.getAIResponse(message);
             let iterationCount = 0;
     
-            while (response.message.tool_calls && iterationCount < this.config.maxToolIterations) {
-                await this.executeToolCalls(response.message.tool_calls, availableFunctions);
+            while (response.choices[0].message.tool_calls && iterationCount < this.config.maxToolIterations) {
+                await this.executeToolCalls(response.choices[0].message.tool_calls, availableFunctions);
                 response = await this.getAIResponse(); // Chiamata successiva senza nuovo messaggio utente
                 iterationCount++;
                 
@@ -26,8 +26,8 @@ class AIProcessor {
                 }
             }
     
-            this.messages.push(response.message);
-            return response.message.content;
+            this.messages.push(response.choices[0].message);
+            return response.choices[0].message.content;
             
         } catch (error) {
             console.error('AI processing error:', error);
@@ -91,11 +91,14 @@ You should always be aware of your surroundings and inventory to make informed d
             console.log('User message:\n', message);
         }
         
-        return await this.ollama.chat({
+        const response = await this.llmClient.chat.completions.create({
             model: this.config.aiModel,
             messages: this.messages,
             tools: toolDefinitions // Manteniamo gli strumenti per tutte le chiamate
         });
+
+        console.log("Assistant response:\n", response);
+        return response;
     }
 
     async executeToolCalls(toolCalls, availableFunctions) {
@@ -151,7 +154,7 @@ You should always be aware of your surroundings and inventory to make informed d
     }
 
     async getFinalResponse() {
-        const finalResponse = await this.ollama.chat({
+        const finalResponse = await this.llmClient.chat.completions.create({
             model: this.config.aiModel,
             messages: this.messages
         });
