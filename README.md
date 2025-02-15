@@ -1,30 +1,56 @@
-# Minecraft AI Bot
+# MinecraftAgentController
 
-An intelligent Minecraft bot powered by LLM (Large Language Model) that can interact with players and perform various tasks in the game. The bot uses mineflayer for game interactions and Ollama for natural language processing.
+A sophisticated AI-powered Minecraft bot that can assist players with various in-game tasks using natural language commands. The bot leverages the Mineflayer library for Minecraft interaction and integrates with AI models for natural language understanding and decision-making.
 
 ## Features
 
-- Natural language interaction with players
-- Pathfinding and navigation capabilities
-- Block collection and inventory management
-- Environment scanning and awareness
-- Player following and assistance
+- **Natural Language Interaction**: Communicate with the bot using natural language commands
+- **Movement Controls**: 
+  - Navigate to specific players
+  - Follow players around the game world
+- **Block Manipulation**:
+  - Collect specific types and quantities of blocks
+  - Place blocks in the world
+- **Inventory Management**:
+  - List inventory contents
+  - Equip items to different slots
+  - Drop/toss items
+- **Crafting System**:
+  - Craft items using available materials
+  - Supports crafting table recipes
+- **Environment Awareness**:
+  - Scan surrounding blocks in a 10-block radius
+  - Track available resources and inventory
 
 ## Prerequisites
 
-Before running the bot, make sure you have:
-
-- Node.js (v14 or higher)
-- Minecraft Java Edition (version 1.20.4)
-- Ollama installed and running locally
+- Node.js (Latest LTS version recommended)
+- Minecraft Java Edition (Version 1.20.4)
 - A running Minecraft server
+
+## Configuration
+
+The bot can be configured using the following options in `src/main.js`:
+
+```javascript
+const config = {
+    host: 'localhost',      // Minecraft server host
+    port: 25565,           // Minecraft server port
+    username: 'AIBot',     // Bot's username
+    aiModel: 'mistral-small:latest', // AI model to use
+    version: '1.20.4',     // Minecraft version
+    maxToolIterations: 5,  // Maximum number of consecutive tool operations
+    apiKey: "none",        // AI API key
+    baseURL: 'http://127.0.0.1:11434/v1' // AI API base URL
+};
+```
 
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd minecraft-ai-bot
+git clone [repository-url]
+cd MinecraftAgentController
 ```
 
 2. Install dependencies:
@@ -32,85 +58,39 @@ cd minecraft-ai-bot
 npm install
 ```
 
-3. Make sure Ollama is running with the required model:
+3. Configure the bot in `src/main.js`
+
+4. Start the bot:
 ```bash
-ollama run hermes3:8b-llama3.1-q4_K_M
-```
-
-## Configuration
-
-Edit the configuration in `main.js` to match your setup:
-
-```javascript
-const config = {
-    host: 'localhost',
-    port: 25565,
-    username: 'AIBot',
-    aiModel: 'hermes3:8b-llama3.1-q4_K_M',
-    version: '1.20.4'
-};
+node src/main.js
 ```
 
 ## Usage
 
-1. Start your Minecraft server
-2. Run the bot:
-```bash
-node main.js
-```
+Once the bot joins the server, you can interact with it using chat commands. The bot understands natural language instructions related to its capabilities. Here are some example commands:
 
-The bot will connect to the server and announce its presence. Players can interact with it using natural language commands in the game chat.
-
-### Available Commands
-
-Players can use natural language to request the following actions:
-
-- Go to a specific player
-- Follow a player
-- Collect specific blocks
-- Check inventory
-- Scan the surrounding area
-
-Examples:
 - "Come to me"
-- "Follow player123"
-- "Collect some oak logs"
+- "Follow player Steve"
+- "Collect 10 oak logs"
+- "Craft 4 wooden planks"
 - "What's in your inventory?"
-- "What blocks are around you?"
+- "Place a torch"
+- "Drop all cobblestone"
 
-## Project Structure
+## Architecture
 
-- `main.js` - Entry point and configuration
-- `bot.js` - Main bot implementation with AI integration
-  - MinecraftAIBot class
-  - Event handling
-  - Command processing
-  - Tool definitions
+The project is organized into several key components:
+
+- `src/main.js`: Entry point and configuration
+- `src/bot/`: Core bot functionality and event handling
+- `src/actions/`: Individual action implementations
+- `src/ai/`: AI processing and command interpretation
+- `src/tools/`: Tool definitions and configurations
 
 ## Dependencies
 
-- `mineflayer` - Minecraft bot client
-- `mineflayer-pathfinder` - Navigation and pathfinding
-- `mineflayer-collectblock` - Block collection functionality
-- `ollama` - LLM integration
-
-## Error Handling
-
-The bot includes basic error handling for:
-- Connection issues
-- AI processing errors
-- Invalid commands
-- Missing blocks/players
-
-## Contributing
-
-Feel free to submit issues and enhancement requests!
-
-## License
-
-[Add your chosen license here]
-
-## Acknowledgments
-
-- Mineflayer team for the excellent Minecraft bot framework
-- Ollama team for the local LLM capabilities
+- `mineflayer`: Core Minecraft bot functionality
+- `mineflayer-pathfinder`: Navigation and movement
+- `mineflayer-collectblock`: Block collection capabilities
+- `openai`: AI model integration
+- Other standard Node.js libraries
